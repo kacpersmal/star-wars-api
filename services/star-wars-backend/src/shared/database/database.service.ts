@@ -11,6 +11,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private configService: ConfigurationService) {}
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async onModuleInit() {
     const dbConfig = this.configService.database;
 

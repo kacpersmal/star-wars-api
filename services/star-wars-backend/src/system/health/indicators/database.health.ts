@@ -27,9 +27,12 @@ export class DatabaseHealthIndicator extends HealthIndicator {
         this.getStatus(key, false),
       );
     } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error occurred';
+
       throw new HealthCheckError(
         'Database check failed',
-        this.getStatus(key, false, { error: error.message }),
+        this.getStatus(key, false, { error: errorMessage }),
       );
     }
   }
