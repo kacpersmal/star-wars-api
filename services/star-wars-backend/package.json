@@ -54,6 +54,8 @@
     "@nestjs/testing": "^11.0.1",
     "@swc/cli": "^0.6.0",
     "@swc/core": "^1.10.7",
+    "@testcontainers/postgresql": "^11.0.3",
+    "@testcontainers/redis": "^11.0.3",
     "@types/express": "^5.0.0",
     "@types/jest": "^29.5.14",
     "@types/joi": "^17.2.2",
@@ -88,10 +90,30 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test/setup.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/dist/"
+    ],
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ],
+    "collectCoverageFrom": [
+      "**/*.(t|j)s",
+      "!**/*.d.ts",
+      "!**/node_modules/**",
+      "!**/test/**",
+      "!**/*.spec.ts",
+      "!**/*.e2e-spec.ts",
+      "!**/*.integration.spec.ts",
+      "!**/main.ts",
+      "!**/seed.ts"
+    ]
   }
 }

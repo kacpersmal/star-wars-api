@@ -5,7 +5,7 @@ import { UpdateCharacterDto } from '../dto/update-character.dto';
 import { CharacterQueryDto } from '../dto/character-query.dto';
 import { ErrorFactory } from '../../../shared/errors/core/application-error.factory';
 import { getErrorMessage } from '../../../shared/utils/error.util';
-import { InjectCached } from 'src/shared/utils/inject-cached.decorator';
+import { InjectCached } from '../../../shared/utils/inject-cached.decorator';
 
 @Injectable()
 export class CharactersService {
