@@ -1,14 +1,22 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import ConfigureSwagger from 'src/common/swagger/init-swagger';
+import ConfigureSwagger from './common/swagger/init-swagger';
 import { ValidationPipe } from '@nestjs/common';
+import helmet from 'helmet';
+import { ConfigurationService } from './common/config/configuration.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
+
   app.useGlobalPipes(new ValidationPipe());
+  app.enableCors();
+  app.use(helmet());
+
+  const configService = app.get(ConfigurationService);
 
   ConfigureSwagger(app);
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(configService.port);
 }
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

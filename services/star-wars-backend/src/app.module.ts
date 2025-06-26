@@ -1,21 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import globalConfiguration from 'src/common/config/global-configuration.loader';
-import globalConfigurationSchema from 'src/common/config/global-configuration.schema';
+import { CommonModule } from './common/common.module';
+import { HealthModule } from './health/health.module';
+import { DatabaseModule } from './database/database.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
-  imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [globalConfiguration],
-      validationSchema: globalConfigurationSchema,
-      validationOptions: {
-        allowUnknown: true,
-        abortEarly: true,
-      },
-    }),
-  ],
-  controllers: [],
-  providers: [],
+  imports: [CommonModule, DatabaseModule, RedisModule, HealthModule],
 })
 export class AppModule {}

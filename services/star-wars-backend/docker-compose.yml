@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: star-wars-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: star_wars_db
+      POSTGRES_USER: star_wars_user
+      POSTGRES_PASSWORD: star_wars_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - star-wars-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: star-wars-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - star-wars-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  star-wars-network:
+    driver: bridge
