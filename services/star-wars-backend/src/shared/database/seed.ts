@@ -43,7 +43,7 @@ async function seed() {
       .insert(schema.episodes)
       .values({
         name: 'A New Hope',
-        date: new Date('1977-05-25'),
+        date: '1977-05-25',
       })
       .returning();
 
@@ -51,7 +51,7 @@ async function seed() {
       .insert(schema.episodes)
       .values({
         name: 'The Empire Strikes Back',
-        date: new Date('1980-05-17'),
+        date: '1980-05-17',
       })
       .returning();
 
@@ -59,7 +59,7 @@ async function seed() {
       .insert(schema.episodes)
       .values({
         name: 'Return of the Jedi',
-        date: new Date('1983-05-25'),
+        date: '1983-05-25',
       })
       .returning();
 

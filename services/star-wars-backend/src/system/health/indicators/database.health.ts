@@ -4,31 +4,31 @@ import {
   HealthIndicatorResult,
   HealthCheckError,
 } from '@nestjs/terminus';
-import { RedisService } from '../../redis/redis.service';
+import { DatabaseService } from '../../../shared/database/database.service';
 
 @Injectable()
-export class RedisHealthIndicator extends HealthIndicator {
-  constructor(private redisService: RedisService) {
+export class DatabaseHealthIndicator extends HealthIndicator {
+  constructor(private databaseService: DatabaseService) {
     super();
   }
 
   async isHealthy(key: string): Promise<HealthIndicatorResult> {
     try {
-      const isConnected = await this.redisService.checkConnection();
+      const isConnected = await this.databaseService.checkConnection();
 
       if (isConnected) {
         return this.getStatus(key, true, {
-          message: 'Redis connection is healthy',
+          message: 'Database connection is healthy',
         });
       }
 
       throw new HealthCheckError(
-        'Redis check failed',
+        'Database check failed',
         this.getStatus(key, false),
       );
     } catch (error) {
       throw new HealthCheckError(
-        'Redis check failed',
+        'Database check failed',
         this.getStatus(key, false, { error: error.message }),
       );
     }

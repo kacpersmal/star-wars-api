@@ -1,4 +1,4 @@
-import GlobalConfiguration from 'src/common/config/global-configuration.interface';
+import GlobalConfiguration from './global-configuration.interface';
 
 const globalConfigurationLoader = (): GlobalConfiguration => ({
   port: parseInt(process.env.PORT || '3000', 10),
