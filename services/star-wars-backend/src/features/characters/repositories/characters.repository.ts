@@ -5,7 +5,7 @@ import { characters } from '../../../shared/database/schema';
 import { CreateCharacterDto } from '../dto/create-character.dto';
 import { UpdateCharacterDto } from '../dto/update-character.dto';
 import { CharacterQueryDto } from '../dto/character-query.dto';
-
+import { CacheProxy } from '../../../shared/redis/cache/cache-proxy.decorator';
 export interface CharacterWithRelations {
   id: string;
   name: string;
@@ -84,6 +84,7 @@ export class CharactersRepository {
     return characterWithRelations!;
   }
 
+  @CacheProxy(60)
   async findAll(query: CharacterQueryDto): Promise<CharacterWithRelations[]> {
     const db = this.databaseService.getDb();
     const conditions: any[] = [];
@@ -129,6 +130,7 @@ export class CharactersRepository {
     }));
   }
 
+  @CacheProxy(60)
   async findOne(id: string): Promise<CharacterWithRelations | null> {
     return this.getCharacterWithRelations(id);
   }

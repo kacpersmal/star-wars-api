@@ -1,43 +1,63 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
-import { ConfigurationService } from '../config/configuration.service';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: RedisClientType;
+  private readonly logger = new Logger(RedisService.name);
+  private client: RedisClientType | null = null;
 
-  constructor(private configService: ConfigurationService) {}
+  constructor(private readonly configService: ConfigService) {}
 
-  async onModuleInit() {
-    const redisConfig = this.configService.redis;
+  async onModuleInit(): Promise<void> {
+    try {
+      const redisUrl =
+        this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379';
 
-    this.client = createClient({
-      socket: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-      },
-      password: redisConfig.password || undefined,
-    });
+      this.client = createClient({
+        url: redisUrl,
+      });
 
-    this.client.on('error', (err) => {
-      console.error('Redis Client Error', err);
-    });
+      this.client.on('error', (error) => {
+        this.logger.error('Redis connection error', error);
+      });
 
-    await this.client.connect();
+      this.client.on('connect', () => {
+        this.logger.log('Connected to Redis');
+      });
+
+      await this.client.connect();
+    } catch (error) {
+      this.logger.error('Failed to connect to Redis', error);
+      this.client = null;
+    }
   }
 
-  async onModuleDestroy() {
-    await this.client.quit();
+  async onModuleDestroy(): Promise<void> {
+    if (this.client) {
+      await this.client.disconnect();
+      this.client = null;
+    }
   }
 
-  getClient(): RedisClientType {
+  getClient(): RedisClientType | null {
+    if (!this.client) {
+      this.logger.warn('Redis client is not connected');
+      return null;
+    }
     return this.client;
   }
 
-  async checkConnection(): Promise<boolean> {
+  async isConnected(): Promise<boolean> {
     try {
-      const result = await this.client.ping();
-      return result === 'PONG';
+      if (!this.client) return false;
+      await this.client.ping();
+      return true;
     } catch {
       return false;
     }
