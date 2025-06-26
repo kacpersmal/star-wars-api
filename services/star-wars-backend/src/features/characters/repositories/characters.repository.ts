@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { eq, ilike, and } from 'drizzle-orm';
 import { DatabaseService } from '../../../shared/database/database.service';
+import { CacheService } from '../../../shared/redis/cache/cache.service';
 import { characters } from '../../../shared/database/schema';
 import { CreateCharacterDto } from '../dto/create-character.dto';
 import { UpdateCharacterDto } from '../dto/update-character.dto';
 import { CharacterQueryDto } from '../dto/character-query.dto';
 import { CacheProxy } from '../../../shared/redis/cache/cache-proxy.decorator';
+import { getErrorMessage } from '../../../shared/utils/error.util';
+
 export interface CharacterWithRelations {
   id: string;
   name: string;
@@ -29,7 +32,10 @@ export interface CharacterWithRelations {
 
 @Injectable()
 export class CharactersRepository {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   private async getCharacterWithRelations(
     characterId: string,
@@ -81,6 +87,9 @@ export class CharactersRepository {
     const characterWithRelations = await this.getCharacterWithRelations(
       character.id,
     );
+
+    await this.invalidateFindAllCache();
+
     return characterWithRelations!;
   }
 
@@ -153,6 +162,10 @@ export class CharactersRepository {
     const characterWithRelations = await this.getCharacterWithRelations(
       updatedCharacter.id,
     );
+
+    await this.invalidateCharacterCache(id);
+    await this.invalidateFindAllCache();
+
     return characterWithRelations!;
   }
 
@@ -160,5 +173,39 @@ export class CharactersRepository {
     const db = this.databaseService.getDb();
 
     await db.delete(characters).where(eq(characters.id, id));
+
+    await this.invalidateCharacterCache(id);
+    await this.invalidateFindAllCache();
+  }
+
+  private async invalidateCharacterCache(characterId: string): Promise<void> {
+    try {
+      const findOneKey = this.cacheService.generateCacheKey({
+        keyPrefix: 'characters_repository',
+        className: 'CharactersRepository',
+        methodName: 'findOne',
+        args: [characterId],
+      });
+
+      await this.cacheService.del(findOneKey);
+    } catch (error) {
+      console.warn(
+        `Failed to invalidate character cache for ID ${characterId}:`,
+        getErrorMessage(error),
+      );
+    }
+  }
+
+  private async invalidateFindAllCache(): Promise<void> {
+    try {
+      await this.cacheService.invalidatePattern(
+        '*characters_repository:CharactersRepository:findAll:*',
+      );
+    } catch (error) {
+      console.warn(
+        'Failed to invalidate findAll cache:',
+        getErrorMessage(error),
+      );
+    }
   }
 }
