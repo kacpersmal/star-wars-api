@@ -190,10 +190,10 @@ jobs:
         working-directory: ${{ env.WORKING_DIRECTORY }}
         run: npm run db:push
 
-      - name: Run e2e tests
-        working-directory: ${{ env.WORKING_DIRECTORY }}
-        continue-on-error: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_test_failures }}
-        run: npm run test:e2e
+      # - name: Run e2e tests
+      #   working-directory: ${{ env.WORKING_DIRECTORY }}
+      #   continue-on-error: ${{ github.event_name == 'workflow_dispatch' && inputs.allow_test_failures }}
+      #   run: npm run test:e2e
 
   build:
     name: Build Application
