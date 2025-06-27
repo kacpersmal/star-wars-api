@@ -20,7 +20,6 @@ export class DeleteEpisodeHandler
   async execute(query: DeleteEpisodeRequestDto): Promise<void> {
     const { id } = query;
 
-    // Check if episode exists
     const existingEpisode = await this.cachedEpisodesRepository.getById(id);
     if (!existingEpisode) {
       throw ErrorFactory.createNotFoundError('EPISODES', 'Episode not found', {
