@@ -85,16 +85,13 @@ export class CacheService {
     factory: () => Promise<T>,
     ttl: number = 60,
   ): Promise<T> {
-    // Try to get from cache first
     const cached = await this.get<T>(key);
     if (cached !== null) {
       return cached;
     }
 
-    // If not in cache, execute factory function
     const result = await factory();
 
-    // Store in cache
     await this.set(key, result, ttl);
 
     return result;
@@ -113,7 +110,6 @@ export class CacheService {
       return `${keyPrefix}:${className}:${methodName}:${argsHash}`;
     }
 
-    // For custom keys without class/method structure
     const argsHash = args.length > 0 ? this.hashArguments(args) : '';
     return argsHash ? `${keyPrefix}:${argsHash}` : keyPrefix;
   }
