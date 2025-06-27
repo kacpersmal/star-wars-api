@@ -7,7 +7,7 @@ import { ErrorFactory } from '../../../shared/errors/core/application-error.fact
 import { getErrorMessage } from '../../../shared/utils/error.util';
 import { InjectCached } from '../../../shared/utils/inject-cached.decorator';
 import { EventService } from '../../../shared/events/services/event.service';
-import { CHARACTER_CREATED_EVENT } from 'src/shared/events';
+import { CHARACTER_CREATED_EVENT } from '../../../shared/events';
 
 @Injectable()
 export class CharactersService {

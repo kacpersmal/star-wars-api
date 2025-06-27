@@ -14,6 +14,7 @@ import { createCachedProvider } from './../../shared/utils/cache.util';
 import { CreateCharacterDto } from './dto/create-character.dto';
 import { UpdateCharacterDto } from './dto/update-character.dto';
 import { CharacterQueryDto } from './dto/character-query.dto';
+import { EventService } from './../../shared/events/services/event.service';
 
 describe('Characters Integration Tests', () => {
   let service: CharactersService;
@@ -51,6 +52,10 @@ describe('Characters Integration Tests', () => {
   const mockRedisService = {
     getClient: jest.fn().mockReturnValue(mockRedisClient),
     isConnected: jest.fn().mockResolvedValue(true),
+  };
+
+  const mockEventService = {
+    publish: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockConfigurationService = {
@@ -136,6 +141,10 @@ describe('Characters Integration Tests', () => {
         {
           provide: ConfigurationService,
           useValue: mockConfigurationService,
+        },
+        {
+          provide: EventService,
+          useValue: mockEventService,
         },
         createCachedProvider('CHARACTERS_REPOSITORY', CharactersRepository),
       ],

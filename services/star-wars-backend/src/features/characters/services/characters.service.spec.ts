@@ -10,11 +10,13 @@ import { CharacterQueryDto } from '../dto/character-query.dto';
 import { ApplicationError } from '../../../shared/errors/core/application-error';
 import { ErrorFactory } from '../../../shared/errors/core/application-error.factory';
 import { CharacterWithRelations } from '../repositories/characters.repository';
+import { EventService } from '../../../shared/events/services/event.service';
 
 describe('CharactersService', () => {
   let service: CharactersService;
   let charactersRepository: jest.Mocked<CharactersRepository>;
   let cachedCharactersRepository: jest.Mocked<CharactersRepository>;
+  let eventService: jest.Mocked<EventService>;
 
   const mockCharacter: CharacterWithRelations = {
     id: '123e4567-e89b-12d3-a456-426614174000',
@@ -55,6 +57,10 @@ describe('CharactersService', () => {
     remove: jest.fn(),
   };
 
+  const mockEventService = {
+    publish: jest.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -67,12 +73,17 @@ describe('CharactersService', () => {
           provide: 'CACHED_CHARACTERS_REPOSITORY',
           useValue: mockCachedCharactersRepository,
         },
+        {
+          provide: EventService,
+          useValue: mockEventService,
+        },
       ],
     }).compile();
 
     service = module.get<CharactersService>(CharactersService);
     charactersRepository = module.get(CharactersRepository);
     cachedCharactersRepository = module.get('CACHED_CHARACTERS_REPOSITORY');
+    eventService = module.get(EventService);
   });
 
   afterEach(() => {
