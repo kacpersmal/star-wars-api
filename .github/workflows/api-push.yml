@@ -1,0 +1,120 @@
+name: Star Wars API - Pull Request
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "services/star-wars-backend/**"
+      - ".github/workflows/api-push.yml"
+  workflow_dispatch:
+    inputs:
+      run_e2e_tests:
+        description: "Run E2E tests"
+        required: false
+        default: true
+        type: boolean
+      upload_coverage:
+        description: "Upload test coverage"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: "18"
+  WORKING_DIRECTORY: "./services/star-wars-backend"
+
+jobs:
+  lint-test-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: star_wars_user
+          POSTGRES_PASSWORD: star_wars_password
+          POSTGRES_DB: star_wars_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Run ESLint
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run lint
+
+      - name: Setup test environment
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          cp .env.example .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_USERNAME=star_wars_user" >> .env
+          echo "DB_PASSWORD=star_wars_password" >> .env
+          echo "DB_DATABASE=star_wars_db" >> .env
+          echo "REDIS_HOST=localhost" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "NODE_ENV=test" >> .env
+
+      - name: Run database migrations
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run db:push
+
+      - name: Run unit tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm test -- --coverage --passWithNoTests
+
+      - name: Run e2e tests
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.run_e2e_tests)
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run test:e2e
+
+      - name: Upload test coverage
+        if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && inputs.upload_coverage)
+        uses: codecov/codecov-action@v3
+        with:
+          directory: ${{ env.WORKING_DIRECTORY }}
+          files: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+      - name: Build application
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build
+
+      - name: Check build artifacts
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          if [ ! -d "dist" ]; then
+            echo "Build failed: dist directory not found"
+            exit 1
+          fi
+          echo "Build successful: $(ls -la dist/)"
