@@ -97,7 +97,6 @@ export class CharactersRepository {
   async findAll(query: CharacterQueryDto): Promise<CharacterWithRelations[]> {
     const db = this.databaseService.getDb();
     const conditions: any[] = [];
-
     if (query.name) {
       conditions.push(ilike(characters.name, `%${query.name}%`));
     }
