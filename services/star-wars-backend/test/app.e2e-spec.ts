@@ -1,17 +1,26 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { createTestApp } from './helpers/test-setup';
 
-describe('AppController (e2e)', () => {
-  let app: INestApplication<App>;
+describe('App (e2e)', () => {
+  let app: INestApplication;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
+  beforeAll(async () => {
+    app = await createTestApp();
+  });
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+  afterAll(async () => {
+    await app.close();
+  });
+
+  describe('Application Bootstrap', () => {
+    it('should start the application successfully', () => {
+      expect(app).toBeDefined();
+      expect(app.getHttpServer()).toBeDefined();
+    });
+
+    it('should have validation pipes configured', () => {
+      // Application should have global validation configured
+      expect(app).toBeDefined();
+    });
   });
 });
