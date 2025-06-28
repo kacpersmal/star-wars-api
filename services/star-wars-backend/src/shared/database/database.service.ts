@@ -41,13 +41,20 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     return this.pool;
   }
 
+  async transaction<T>(
+    callback: (tx: NodePgDatabase<typeof schema>) => Promise<T>,
+  ): Promise<T> {
+    return this.db.transaction(callback);
+  }
+
   async checkConnection(): Promise<boolean> {
     try {
       const client = await this.pool.connect();
       await client.query('SELECT 1');
       client.release();
       return true;
-    } catch {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
       return false;
     }
   }
