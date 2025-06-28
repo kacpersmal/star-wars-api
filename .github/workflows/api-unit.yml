@@ -1,0 +1,85 @@
+name: Star Wars API - Unit Tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "services/star-wars-backend/**"
+      - ".github/workflows/api-unit-tests.yml"
+  workflow_dispatch:
+    inputs:
+      upload_coverage:
+        description: "Upload test coverage"
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: "18"
+  WORKING_DIRECTORY: "./services/star-wars-backend"
+
+jobs:
+  unit-tests:
+    name: Unit Tests & Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: star_wars_user
+          POSTGRES_PASSWORD: star_wars_password
+          POSTGRES_DB: star_wars_db_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Setup test environment
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          cp .env.example .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_USERNAME=star_wars_user" >> .env
+          echo "DB_PASSWORD=star_wars_password" >> .env
+          echo "DB_DATABASE=star_wars_db_test" >> .env
+          echo "REDIS_HOST=localhost" >> .env
+          echo "REDIS_PORT=6379" >> .env
+          echo "NODE_ENV=test" >> .env
+
+      - name: Run database migrations
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run db:push
+
+      - name: Run unit tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm test -- --coverage --passWithNoTests
