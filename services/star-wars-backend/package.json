@@ -25,6 +25,8 @@
     "db:seed": "tsx src/shared/database/seed.ts"
   },
   "dependencies": {
+    "@nestjs-cls/transactional": "^3.0.3",
+    "@nestjs-cls/transactional-adapter-drizzle-orm": "^1.1.20",
     "@nestjs/bull": "^11.0.2",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",

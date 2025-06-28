@@ -6,9 +6,28 @@ import { RedisModule } from './redis/redis.module';
 import { ErrorModule } from './errors/error.module';
 import { EventsModule } from './events/events.module';
 import { ConfigurationService } from './config/configuration.service';
+import { ClsModule } from 'nestjs-cls';
+import { ClsPluginTransactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
+import { DatabaseService } from 'src/shared/database/database.service';
 
 @Module({
   imports: [
+    ClsModule.forRoot({
+      global: true,
+      middleware: {
+        mount: true,
+        generateId: true,
+      },
+      plugins: [
+        new ClsPluginTransactional({
+          imports: [DatabaseModule],
+          adapter: new TransactionalAdapterDrizzleOrm({
+            drizzleInstanceToken: DatabaseService,
+          }),
+        }),
+      ],
+    }),
     ConfigurationModule,
     DatabaseModule,
     RedisModule,
