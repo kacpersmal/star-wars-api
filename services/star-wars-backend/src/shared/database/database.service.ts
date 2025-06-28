@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { DRIZZLE, DrizzleClient } from './drizzle.provider';
-import { ErrorFactory } from 'src/shared/errors/core/application-error.factory';
+import { ErrorFactory } from '../errors/core/application-error.factory';
 
 @Injectable()
 export class DatabaseService implements OnModuleDestroy {
