@@ -27,12 +27,6 @@ import {
   UpdateSpeciesBodyDto,
 } from './actions/update-species';
 import { DeleteSpeciesRequestDto } from './actions/delete-species';
-import {
-  BulkCreateSpeciesDto,
-  BulkCreateSpeciesRequestDto,
-  BulkCreateSpeciesBodyDto,
-} from './actions/bulk-create-species';
-import { Transactional } from 'src/shared/database/transactions/transactional.decorator';
 
 @ApiTags('Species')
 @Controller('species')
@@ -87,15 +81,5 @@ export class SpeciesController {
   @ApiResponse({ status: 204 })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.queryBus.execute(new DeleteSpeciesRequestDto({ id }));
-  }
-
-  @Post('bulk')
-  @Transactional()
-  @ApiOperation({ summary: 'Bulk create species' })
-  @ApiResponse({ status: 201, type: BulkCreateSpeciesDto })
-  async bulkCreate(
-    @Body() body: BulkCreateSpeciesBodyDto,
-  ): Promise<BulkCreateSpeciesDto> {
-    return this.queryBus.execute(new BulkCreateSpeciesRequestDto(body));
   }
 }

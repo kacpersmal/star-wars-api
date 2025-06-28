@@ -3,6 +3,7 @@ import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { ConfigurationService } from '../config/configuration.service';
 import * as schema from './schema';
+import { DrizzleLogger } from 'src/shared/database/drizzle.logger';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {
@@ -26,7 +27,7 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
       connectionTimeoutMillis: 2000,
     });
 
-    this.db = drizzle(this.pool, { schema });
+    this.db = drizzle(this.pool, { schema, logger: new DrizzleLogger() });
   }
 
   async onModuleDestroy() {
@@ -41,20 +42,13 @@ export class DatabaseService implements OnModuleInit, OnModuleDestroy {
     return this.pool;
   }
 
-  async transaction<T>(
-    callback: (tx: NodePgDatabase<typeof schema>) => Promise<T>,
-  ): Promise<T> {
-    return this.db.transaction(callback);
-  }
-
   async checkConnection(): Promise<boolean> {
     try {
       const client = await this.pool.connect();
       await client.query('SELECT 1');
       client.release();
       return true;
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    } catch (error) {
+    } catch {
       return false;
     }
   }
