@@ -1,52 +1,30 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { Pool } from 'pg';
-import { ConfigurationService } from '../config/configuration.service';
-import * as schema from './schema';
-import { DrizzleLogger } from './drizzle.logger';
+import { Injectable, OnModuleDestroy, Inject } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
+import { DRIZZLE, DrizzleClient } from './drizzle.provider';
+import { ErrorFactory } from 'src/shared/errors/core/application-error.factory';
 
 @Injectable()
-export class DatabaseService implements OnModuleInit, OnModuleDestroy {
-  private pool: Pool;
-  private db: NodePgDatabase<typeof schema>;
+export class DatabaseService implements OnModuleDestroy {
+  constructor(
+    @Inject(DRIZZLE)
+    private db: DrizzleClient,
+  ) {}
 
-  constructor(private configService: ConfigurationService) {}
+  async onModuleDestroy() {}
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async onModuleInit() {
-    const dbConfig = this.configService.database;
-
-    this.pool = new Pool({
-      host: dbConfig.host,
-      port: dbConfig.port,
-      user: dbConfig.username,
-      password: dbConfig.password,
-      database: dbConfig.database,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
-    });
-
-    this.db = drizzle(this.pool, { schema, logger: new DrizzleLogger() });
-  }
-
-  async onModuleDestroy() {
-    await this.pool.end();
-  }
-
-  getDb(): NodePgDatabase<typeof schema> {
+  getDb(): DrizzleClient {
+    if (!this.db) {
+      throw ErrorFactory.createInternalError(
+        'DATABASE',
+        'Database not initialized. Make sure DatabaseService has been properly injected.',
+      );
+    }
     return this.db;
-  }
-
-  getPool(): Pool {
-    return this.pool;
   }
 
   async checkConnection(): Promise<boolean> {
     try {
-      const client = await this.pool.connect();
-      await client.query('SELECT 1');
-      client.release();
+      await this.db.execute(sql`SELECT 1`);
       return true;
     } catch {
       return false;

@@ -1,4 +1,9 @@
-export type ErrorDomain = 'SYSTEM' | 'CHARACTERS' | 'EPISODES' | 'SPECIES';
+export type ErrorDomain =
+  | 'SYSTEM'
+  | 'CHARACTERS'
+  | 'EPISODES'
+  | 'SPECIES'
+  | 'DATABASE';
 
 export type ErrorCode =
   | 'NOT_FOUND'

@@ -9,7 +9,7 @@ import { ConfigurationService } from './config/configuration.service';
 import { ClsModule } from 'nestjs-cls';
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterDrizzleOrm } from '@nestjs-cls/transactional-adapter-drizzle-orm';
-import { DatabaseService } from 'src/shared/database/database.service';
+import { DRIZZLE } from './database/drizzle.provider';
 
 @Module({
   imports: [
@@ -23,7 +23,7 @@ import { DatabaseService } from 'src/shared/database/database.service';
         new ClsPluginTransactional({
           imports: [DatabaseModule],
           adapter: new TransactionalAdapterDrizzleOrm({
-            drizzleInstanceToken: DatabaseService,
+            drizzleInstanceToken: DRIZZLE,
           }),
         }),
       ],

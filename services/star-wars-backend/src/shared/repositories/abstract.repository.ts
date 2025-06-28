@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DatabaseService } from '../database/database.service';
 import { CacheService } from '../redis/cache/cache.service';
-import * as schema from '../database/schema';
+import { DrizzleClient } from '../database/drizzle.provider';
 
 @Injectable()
 export abstract class AbstractRepository {
@@ -11,10 +10,7 @@ export abstract class AbstractRepository {
     protected readonly cacheService: CacheService,
   ) {}
 
-  /**
-   * Get the database instance
-   */
-  protected get db(): NodePgDatabase<typeof schema> {
+  protected get db(): DrizzleClient {
     return this.databaseService.getDb();
   }
 }
