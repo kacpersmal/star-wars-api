@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/unbound-method */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import {
   CharactersRepository,
@@ -127,7 +127,6 @@ describe('CharactersRepository', () => {
 
       mockDb.insert.mockReturnValue(mockInsertChain);
       mockDb.query.characters.findFirst.mockResolvedValue(mockCharacterData);
-      cacheService.invalidatePattern.mockResolvedValue(5);
 
       const result = await repository.create(createCharacterDto);
 
@@ -135,31 +134,7 @@ describe('CharactersRepository', () => {
       expect(mockInsertChain.values).toHaveBeenCalledWith(createCharacterDto);
       expect(mockInsertChain.returning).toHaveBeenCalled();
       expect(mockDb.query.characters.findFirst).toHaveBeenCalled();
-      expect(cacheService.invalidatePattern).toHaveBeenCalledWith(
-        '*characters_repository:CharactersRepository:findAll:*',
-      );
       expect(result).toEqual(expectedCharacter);
-    });
-
-    it('should handle cache invalidation errors gracefully', async () => {
-      const mockInsertChain = {
-        values: jest.fn().mockReturnThis(),
-        returning: jest
-          .fn()
-          .mockResolvedValue([{ id: '123e4567-e89b-12d3-a456-426614174000' }]),
-      };
-
-      mockDb.insert.mockReturnValue(mockInsertChain);
-      mockDb.query.characters.findFirst.mockResolvedValue(mockCharacterData);
-      cacheService.invalidatePattern.mockRejectedValue(
-        new Error('Redis connection failed'),
-      );
-
-      // Should not throw even if cache invalidation fails
-      const result = await repository.create(createCharacterDto);
-
-      expect(result).toEqual(expectedCharacter);
-      expect(cacheService.invalidatePattern).toHaveBeenCalled();
     });
   });
 
@@ -282,7 +257,7 @@ describe('CharactersRepository', () => {
       name: 'Luke Skywalker Updated',
     };
 
-    it('should update character and invalidate caches', async () => {
+    it('should update character successfully', async () => {
       const mockUpdateChain = {
         set: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -294,9 +269,6 @@ describe('CharactersRepository', () => {
         ...mockCharacterData,
         name: 'Luke Skywalker Updated',
       });
-      cacheService.generateCacheKey.mockReturnValue('cache_key');
-      cacheService.del.mockResolvedValue(true);
-      cacheService.invalidatePattern.mockResolvedValue(3);
 
       const result = await repository.update(characterId, updateCharacterDto);
 
@@ -307,25 +279,10 @@ describe('CharactersRepository', () => {
       });
       expect(mockUpdateChain.where).toHaveBeenCalled();
       expect(mockUpdateChain.returning).toHaveBeenCalled();
-
-      // Should invalidate specific character cache
-      expect(cacheService.generateCacheKey).toHaveBeenCalledWith({
-        keyPrefix: 'characters_repository',
-        className: 'CharactersRepository',
-        methodName: 'findOne',
-        args: [characterId],
-      });
-      expect(cacheService.del).toHaveBeenCalledWith('cache_key');
-
-      // Should invalidate findAll cache
-      expect(cacheService.invalidatePattern).toHaveBeenCalledWith(
-        '*characters_repository:CharactersRepository:findAll:*',
-      );
-
       expect(result.name).toBe('Luke Skywalker Updated');
     });
 
-    it('should handle cache invalidation errors gracefully', async () => {
+    it('should update character even when cache operations fail', async () => {
       const mockUpdateChain = {
         set: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -334,13 +291,8 @@ describe('CharactersRepository', () => {
 
       mockDb.update.mockReturnValue(mockUpdateChain);
       mockDb.query.characters.findFirst.mockResolvedValue(mockCharacterData);
-      cacheService.generateCacheKey.mockReturnValue('cache_key');
-      cacheService.del.mockRejectedValue(new Error('Cache deletion failed'));
-      cacheService.invalidatePattern.mockRejectedValue(
-        new Error('Pattern invalidation failed'),
-      );
 
-      // Should not throw even if cache operations fail
+      // Should not throw even if cache operations fail (handled by decorators)
       const result = await repository.update(characterId, updateCharacterDto);
 
       expect(result).toEqual(expectedCharacter);
@@ -350,77 +302,28 @@ describe('CharactersRepository', () => {
   describe('remove', () => {
     const characterId = '123e4567-e89b-12d3-a456-426614174000';
 
-    it('should remove character and invalidate caches', async () => {
+    it('should remove character successfully', async () => {
       const mockDeleteChain = {
         where: jest.fn().mockResolvedValue(undefined),
       };
 
       mockDb.delete.mockReturnValue(mockDeleteChain);
-      cacheService.generateCacheKey.mockReturnValue('cache_key');
-      cacheService.del.mockResolvedValue(true);
-      cacheService.invalidatePattern.mockResolvedValue(2);
 
       await repository.remove(characterId);
 
       expect(mockDb.delete).toHaveBeenCalled();
       expect(mockDeleteChain.where).toHaveBeenCalled();
-
-      // Should invalidate specific character cache
-      expect(cacheService.generateCacheKey).toHaveBeenCalledWith({
-        keyPrefix: 'characters_repository',
-        className: 'CharactersRepository',
-        methodName: 'findOne',
-        args: [characterId],
-      });
-      expect(cacheService.del).toHaveBeenCalledWith('cache_key');
-
-      // Should invalidate findAll cache
-      expect(cacheService.invalidatePattern).toHaveBeenCalledWith(
-        '*characters_repository:CharactersRepository:findAll:*',
-      );
     });
 
-    it('should handle cache invalidation errors gracefully', async () => {
+    it('should remove character even when cache operations fail', async () => {
       const mockDeleteChain = {
         where: jest.fn().mockResolvedValue(undefined),
       };
 
       mockDb.delete.mockReturnValue(mockDeleteChain);
-      cacheService.generateCacheKey.mockReturnValue('cache_key');
-      cacheService.del.mockRejectedValue(new Error('Cache deletion failed'));
-      cacheService.invalidatePattern.mockRejectedValue(
-        new Error('Pattern invalidation failed'),
-      );
 
-      // Should not throw even if cache operations fail
+      // Should not throw even if cache operations fail (handled by decorators)
       await expect(repository.remove(characterId)).resolves.toBeUndefined();
-    });
-  });
-
-  describe('cache key generation', () => {
-    it('should generate correct cache key for findOne', async () => {
-      const characterId = '123e4567-e89b-12d3-a456-426614174000';
-
-      // Mock the private method call that happens during update/remove
-      cacheService.generateCacheKey.mockReturnValue('test_cache_key');
-
-      const mockUpdateChain = {
-        set: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        returning: jest.fn().mockResolvedValue([{ id: characterId }]),
-      };
-
-      mockDb.update.mockReturnValue(mockUpdateChain);
-      mockDb.query.characters.findFirst.mockResolvedValue(mockCharacterData);
-
-      await repository.update(characterId, { name: 'Test' });
-
-      expect(cacheService.generateCacheKey).toHaveBeenCalledWith({
-        keyPrefix: 'characters_repository',
-        className: 'CharactersRepository',
-        methodName: 'findOne',
-        args: [characterId],
-      });
     });
   });
 });

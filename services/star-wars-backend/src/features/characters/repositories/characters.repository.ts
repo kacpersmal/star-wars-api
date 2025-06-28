@@ -7,8 +7,12 @@ import { characters } from '../../../shared/database/schema';
 import { CreateCharacterDto } from '../dto/create-character.dto';
 import { UpdateCharacterDto } from '../dto/update-character.dto';
 import { CharacterQueryDto } from '../dto/character-query.dto';
-import { CacheProxy } from '../../../shared/redis/cache/cache-proxy.decorator';
-import { getErrorMessage } from '../../../shared/utils/error.util';
+import {
+  TypedCache,
+  InvalidatePattern,
+  InvalidateMethod,
+} from '../../../shared/redis/cache/typed-cache.decorator';
+import { CachePatterns } from '../../../shared/redis/cache/cache-pattern-builder';
 
 export interface CharacterWithRelations {
   id: string;
@@ -72,6 +76,7 @@ export class CharactersRepository extends AbstractRepository {
     };
   }
 
+  @InvalidatePattern(CachePatterns.Characters.findAll)
   async create(
     createCharacterDto: CreateCharacterDto,
   ): Promise<CharacterWithRelations> {
@@ -84,12 +89,10 @@ export class CharactersRepository extends AbstractRepository {
       character.id,
     );
 
-    await this.invalidateFindAllCache();
-
     return characterWithRelations!;
   }
 
-  @CacheProxy(60)
+  @TypedCache({ ttl: 60 })
   async findAll(query: CharacterQueryDto): Promise<CharacterWithRelations[]> {
     const conditions: SQL<unknown>[] = [];
     if (query.name) {
@@ -133,11 +136,17 @@ export class CharactersRepository extends AbstractRepository {
     }));
   }
 
-  @CacheProxy(60)
+  @TypedCache({ ttl: 60 })
   async findOne(id: string): Promise<CharacterWithRelations | null> {
     return this.getCharacterWithRelations(id);
   }
 
+  @InvalidateMethod(
+    'CharactersRepository',
+    ['findOne'],
+    'characters_repository',
+  )
+  @InvalidatePattern(CachePatterns.Characters.findAll)
   async update(
     id: string,
     updateCharacterDto: UpdateCharacterDto,
@@ -155,47 +164,16 @@ export class CharactersRepository extends AbstractRepository {
       updatedCharacter.id,
     );
 
-    await this.invalidateCharacterCache(id);
-    await this.invalidateFindAllCache();
-
     return characterWithRelations!;
   }
 
+  @InvalidateMethod(
+    'CharactersRepository',
+    ['findOne'],
+    'characters_repository',
+  )
+  @InvalidatePattern(CachePatterns.Characters.findAll)
   async remove(id: string): Promise<void> {
     await this.db.delete(characters).where(eq(characters.id, id));
-
-    await this.invalidateCharacterCache(id);
-    await this.invalidateFindAllCache();
-  }
-
-  private async invalidateCharacterCache(characterId: string): Promise<void> {
-    try {
-      const findOneKey = this.cacheService.generateCacheKey({
-        keyPrefix: 'characters_repository',
-        className: 'CharactersRepository',
-        methodName: 'findOne',
-        args: [characterId],
-      });
-
-      await this.cacheService.del(findOneKey);
-    } catch (error) {
-      console.warn(
-        `Failed to invalidate character cache for ID ${characterId}:`,
-        getErrorMessage(error),
-      );
-    }
-  }
-
-  private async invalidateFindAllCache(): Promise<void> {
-    try {
-      await this.cacheService.invalidatePattern(
-        '*characters_repository:CharactersRepository:findAll:*',
-      );
-    } catch (error) {
-      console.warn(
-        'Failed to invalidate findAll cache:',
-        getErrorMessage(error),
-      );
-    }
   }
 }

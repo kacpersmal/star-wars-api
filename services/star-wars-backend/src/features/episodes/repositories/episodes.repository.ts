@@ -4,7 +4,7 @@ import { CacheService } from 'src/shared/redis/cache/cache.service';
 import { AbstractRepository } from 'src/shared/repositories/abstract.repository';
 import { and, eq, ilike, type SQL } from 'drizzle-orm';
 import { episodes } from 'src/shared/database/schema';
-import { CacheProxy } from 'src/shared/redis/cache/cache-proxy.decorator';
+import { TypedCache } from 'src/shared/redis/cache/typed-cache.decorator';
 import { getErrorMessage } from 'src/shared/utils/error.util';
 
 export interface CreateEpisodeDto {
@@ -23,7 +23,7 @@ export class EpisodesRepository extends AbstractRepository {
     super(databaseService, cacheService);
   }
 
-  @CacheProxy(300)
+  @TypedCache({ ttl: 300 })
   async getAll(limit?: number, offset?: number, search?: string) {
     const conditions: SQL<unknown>[] = [];
 
@@ -40,7 +40,7 @@ export class EpisodesRepository extends AbstractRepository {
     return episodesData;
   }
 
-  @CacheProxy(60)
+  @TypedCache({ ttl: 60 })
   async getById(episodeId: string) {
     const episodeData = await this.db.query.episodes.findFirst({
       where: eq(episodes.id, episodeId),

@@ -4,7 +4,7 @@ import { CacheService } from 'src/shared/redis/cache/cache.service';
 import { AbstractRepository } from 'src/shared/repositories/abstract.repository';
 import { and, eq, ilike, sql, type SQL } from 'drizzle-orm';
 import { species } from 'src/shared/database/schema';
-import { CacheProxy } from 'src/shared/redis/cache/cache-proxy.decorator';
+import { TypedCache } from 'src/shared/redis/cache/typed-cache.decorator';
 import { getErrorMessage } from 'src/shared/utils/error.util';
 
 export interface CreateSpeciesDto {
@@ -21,7 +21,7 @@ export class SpeciesRepository extends AbstractRepository {
     super(databaseService, cacheService);
   }
 
-  @CacheProxy(300)
+  @TypedCache({ ttl: 300 })
   async getAll(limit?: number, offset?: number, search?: string) {
     const conditions: SQL<unknown>[] = [];
 
@@ -38,7 +38,7 @@ export class SpeciesRepository extends AbstractRepository {
     return speciesData;
   }
 
-  @CacheProxy(60)
+  @TypedCache({ ttl: 60 })
   async getById(speciesId: string) {
     const speciesData = await this.db.query.species.findFirst({
       where: eq(species.id, speciesId),
