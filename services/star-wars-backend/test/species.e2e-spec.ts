@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
 import { createTestApp, TEST_IDS } from './helpers/test-setup';
