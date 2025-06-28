@@ -106,4 +106,19 @@ export class ErrorFactory {
       context,
     );
   }
+
+  static createConflictError(
+    domain: ErrorDomain,
+    message: string,
+    context?: Record<string, any>,
+  ) {
+    return new ApplicationError(
+      domain,
+      'CONFLICT',
+      message,
+      409,
+      true,
+      context,
+    );
+  }
 }

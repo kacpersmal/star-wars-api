@@ -7,6 +7,7 @@ export type ErrorCode =
   | 'UNAUTHORIZED'
   | 'FORBIDDEN'
   | 'INTERNAL_ERROR'
-  | 'SERVICE_UNAVAILABLE';
+  | 'SERVICE_UNAVAILABLE'
+  | 'CONFLICT';
 
 export type ApplicationErrorKey = `${ErrorDomain}_${ErrorCode}`;

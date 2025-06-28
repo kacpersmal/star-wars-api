@@ -162,7 +162,7 @@ export class SpeciesRepository {
     }
   }
 
-  private async invalidateFindAllCache(): Promise<void> {
+  async invalidateFindAllCache(): Promise<void> {
     try {
       const pattern = '*species_repository:SpeciesRepository:getAll:*';
       await this.cacheService.invalidatePattern(pattern);
