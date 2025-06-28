@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { eq, ilike, and } from 'drizzle-orm';
+import { eq, ilike, and, type SQL } from 'drizzle-orm';
 import { DatabaseService } from '../../../shared/database/database.service';
 import { CacheService } from '../../../shared/redis/cache/cache.service';
+import { AbstractRepository } from '../../../shared/repositories/abstract.repository';
 import { characters } from '../../../shared/database/schema';
 import { CreateCharacterDto } from '../dto/create-character.dto';
 import { UpdateCharacterDto } from '../dto/update-character.dto';
@@ -31,18 +32,15 @@ export interface CharacterWithRelations {
 }
 
 @Injectable()
-export class CharactersRepository {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly cacheService: CacheService,
-  ) {}
+export class CharactersRepository extends AbstractRepository {
+  constructor(databaseService: DatabaseService, cacheService: CacheService) {
+    super(databaseService, cacheService);
+  }
 
   private async getCharacterWithRelations(
     characterId: string,
   ): Promise<CharacterWithRelations | null> {
-    const db = this.databaseService.getDb();
-
-    const characterData = await db.query.characters.findFirst({
+    const characterData = await this.db.query.characters.findFirst({
       where: eq(characters.id, characterId),
       with: {
         species: true,
@@ -77,9 +75,7 @@ export class CharactersRepository {
   async create(
     createCharacterDto: CreateCharacterDto,
   ): Promise<CharacterWithRelations> {
-    const db = this.databaseService.getDb();
-
-    const [character] = await db
+    const [character] = await this.db
       .insert(characters)
       .values(createCharacterDto)
       .returning();
@@ -95,8 +91,7 @@ export class CharactersRepository {
 
   @CacheProxy(60)
   async findAll(query: CharacterQueryDto): Promise<CharacterWithRelations[]> {
-    const db = this.databaseService.getDb();
-    const conditions: any[] = [];
+    const conditions: SQL<unknown>[] = [];
     if (query.name) {
       conditions.push(ilike(characters.name, `%${query.name}%`));
     }
@@ -107,7 +102,7 @@ export class CharactersRepository {
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const charactersData = await db.query.characters.findMany({
+    const charactersData = await this.db.query.characters.findMany({
       where: whereClause,
       limit: query.limit || 10,
       offset: query.offset || 0,
@@ -147,9 +142,7 @@ export class CharactersRepository {
     id: string,
     updateCharacterDto: UpdateCharacterDto,
   ): Promise<CharacterWithRelations> {
-    const db = this.databaseService.getDb();
-
-    const [updatedCharacter] = await db
+    const [updatedCharacter] = await this.db
       .update(characters)
       .set({
         ...updateCharacterDto,
@@ -169,9 +162,7 @@ export class CharactersRepository {
   }
 
   async remove(id: string): Promise<void> {
-    const db = this.databaseService.getDb();
-
-    await db.delete(characters).where(eq(characters.id, id));
+    await this.db.delete(characters).where(eq(characters.id, id));
 
     await this.invalidateCharacterCache(id);
     await this.invalidateFindAllCache();

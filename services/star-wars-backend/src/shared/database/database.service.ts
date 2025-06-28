@@ -3,7 +3,7 @@ import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import { ConfigurationService } from '../config/configuration.service';
 import * as schema from './schema';
-import { DrizzleLogger } from 'src/shared/database/drizzle.logger';
+import { DrizzleLogger } from './drizzle.logger';
 
 @Injectable()
 export class DatabaseService implements OnModuleInit, OnModuleDestroy {

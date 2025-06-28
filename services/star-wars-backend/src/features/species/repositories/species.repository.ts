@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/shared/database/database.service';
 import { CacheService } from 'src/shared/redis/cache/cache.service';
-import { and, eq, ilike, sql } from 'drizzle-orm';
+import { AbstractRepository } from 'src/shared/repositories/abstract.repository';
+import { and, eq, ilike, sql, type SQL } from 'drizzle-orm';
 import { species } from 'src/shared/database/schema';
 import { CacheProxy } from 'src/shared/redis/cache/cache-proxy.decorator';
 import { getErrorMessage } from 'src/shared/utils/error.util';
@@ -15,22 +16,20 @@ export interface UpdateSpeciesDto {
 }
 
 @Injectable()
-export class SpeciesRepository {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly cacheService: CacheService,
-  ) {}
+export class SpeciesRepository extends AbstractRepository {
+  constructor(databaseService: DatabaseService, cacheService: CacheService) {
+    super(databaseService, cacheService);
+  }
 
   @CacheProxy(300)
   async getAll(limit?: number, offset?: number, search?: string) {
-    const db = this.databaseService.getDb();
-    const conditions: any[] = [];
+    const conditions: SQL<unknown>[] = [];
 
     if (search) {
       conditions.push(ilike(species.name, `%${search}%`));
     }
 
-    const speciesData = await db.query.species.findMany({
+    const speciesData = await this.db.query.species.findMany({
       limit,
       offset,
       where: conditions.length > 0 ? and(...conditions) : undefined,
@@ -41,8 +40,7 @@ export class SpeciesRepository {
 
   @CacheProxy(60)
   async getById(speciesId: string) {
-    const db = this.databaseService.getDb();
-    const speciesData = await db.query.species.findFirst({
+    const speciesData = await this.db.query.species.findFirst({
       where: eq(species.id, speciesId),
     });
 
@@ -50,10 +48,8 @@ export class SpeciesRepository {
   }
 
   async create(createSpeciesDto: CreateSpeciesDto) {
-    const db = this.databaseService.getDb();
-
     try {
-      const [newSpecies] = await db
+      const [newSpecies] = await this.db
         .insert(species)
         .values({
           name: createSpeciesDto.name,
@@ -70,10 +66,8 @@ export class SpeciesRepository {
   }
 
   async update(speciesId: string, updateSpeciesDto: UpdateSpeciesDto) {
-    const db = this.databaseService.getDb();
-
     try {
-      const [updatedSpecies] = await db
+      const [updatedSpecies] = await this.db
         .update(species)
         .set({
           name: updateSpeciesDto.name,
@@ -93,10 +87,8 @@ export class SpeciesRepository {
   }
 
   async delete(speciesId: string) {
-    const db = this.databaseService.getDb();
-
     try {
-      await db.delete(species).where(eq(species.id, speciesId));
+      await this.db.delete(species).where(eq(species.id, speciesId));
 
       await this.invalidateSpeciesCache(speciesId);
       await this.invalidateFindAllCache();
@@ -108,9 +100,7 @@ export class SpeciesRepository {
   }
 
   async findByName(name: string) {
-    const db = this.databaseService.getDb();
-
-    const speciesData = await db.query.species.findFirst({
+    const speciesData = await this.db.query.species.findFirst({
       where: eq(species.name, name),
     });
 
@@ -118,9 +108,7 @@ export class SpeciesRepository {
   }
 
   async exists(speciesId: string): Promise<boolean> {
-    const db = this.databaseService.getDb();
-
-    const speciesData = await db.query.species.findFirst({
+    const speciesData = await this.db.query.species.findFirst({
       where: eq(species.id, speciesId),
       columns: { id: true },
     });
@@ -129,14 +117,13 @@ export class SpeciesRepository {
   }
 
   async count(search?: string): Promise<number> {
-    const db = this.databaseService.getDb();
-    const conditions: any[] = [];
+    const conditions: SQL<unknown>[] = [];
 
     if (search) {
       conditions.push(ilike(species.name, `%${search}%`));
     }
 
-    const result = await db
+    const result = await this.db
       .select({ count: sql<number>`count(*)` })
       .from(species)
       .where(conditions.length > 0 ? and(...conditions) : undefined);

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/shared/database/database.service';
 import { CacheService } from 'src/shared/redis/cache/cache.service';
-import { and, eq, ilike } from 'drizzle-orm';
+import { AbstractRepository } from 'src/shared/repositories/abstract.repository';
+import { and, eq, ilike, type SQL } from 'drizzle-orm';
 import { episodes } from 'src/shared/database/schema';
 import { CacheProxy } from 'src/shared/redis/cache/cache-proxy.decorator';
 import { getErrorMessage } from 'src/shared/utils/error.util';
@@ -17,22 +18,20 @@ export interface UpdateEpisodeDto {
 }
 
 @Injectable()
-export class EpisodesRepository {
-  constructor(
-    private readonly databaseService: DatabaseService,
-    private readonly cacheService: CacheService,
-  ) {}
+export class EpisodesRepository extends AbstractRepository {
+  constructor(databaseService: DatabaseService, cacheService: CacheService) {
+    super(databaseService, cacheService);
+  }
 
   @CacheProxy(300)
   async getAll(limit?: number, offset?: number, search?: string) {
-    const db = this.databaseService.getDb();
-    const conditions: any[] = [];
+    const conditions: SQL<unknown>[] = [];
 
     if (search) {
       conditions.push(ilike(episodes.name, `%${search}%`));
     }
 
-    const episodesData = await db.query.episodes.findMany({
+    const episodesData = await this.db.query.episodes.findMany({
       limit,
       offset,
       where: conditions.length > 0 ? and(...conditions) : undefined,
@@ -43,8 +42,7 @@ export class EpisodesRepository {
 
   @CacheProxy(60)
   async getById(episodeId: string) {
-    const db = this.databaseService.getDb();
-    const episodeData = await db.query.episodes.findFirst({
+    const episodeData = await this.db.query.episodes.findFirst({
       where: eq(episodes.id, episodeId),
     });
 
@@ -52,9 +50,7 @@ export class EpisodesRepository {
   }
 
   async create(createEpisodeDto: CreateEpisodeDto) {
-    const db = this.databaseService.getDb();
-
-    const [newEpisode] = await db
+    const [newEpisode] = await this.db
       .insert(episodes)
       .values({
         name: createEpisodeDto.name,
@@ -69,9 +65,7 @@ export class EpisodesRepository {
   }
 
   async update(id: string, updateEpisodeDto: UpdateEpisodeDto) {
-    const db = this.databaseService.getDb();
-
-    const [updatedEpisode] = await db
+    const [updatedEpisode] = await this.db
       .update(episodes)
       .set({
         ...updateEpisodeDto,
@@ -88,9 +82,7 @@ export class EpisodesRepository {
   }
 
   async remove(id: string): Promise<void> {
-    const db = this.databaseService.getDb();
-
-    await db.delete(episodes).where(eq(episodes.id, id));
+    await this.db.delete(episodes).where(eq(episodes.id, id));
 
     await this.invalidateEpisodeCache(id);
     await this.invalidateFindAllCache();
