@@ -5,7 +5,6 @@ import { UpdateCharacterDto } from '../dto/update-character.dto';
 import { CharacterQueryDto } from '../dto/character-query.dto';
 import { ErrorFactory } from '../../../shared/errors/core/application-error.factory';
 import { getErrorMessage } from '../../../shared/utils/error.util';
-import { InjectCached } from '../../../shared/utils/inject-cached.decorator';
 import { EventService } from '../../../shared/events/services/event.service';
 import { CHARACTER_CREATED_EVENT } from '../../../shared/events';
 
@@ -13,8 +12,6 @@ import { CHARACTER_CREATED_EVENT } from '../../../shared/events';
 export class CharactersService {
   constructor(
     private readonly charactersRepository: CharactersRepository,
-    @InjectCached('CHARACTERS_REPOSITORY')
-    private readonly cachedCharactersRepository: CharactersRepository,
     private readonly eventService: EventService,
   ) {}
 
@@ -43,7 +40,7 @@ export class CharactersService {
   async findAll(query: CharacterQueryDto) {
     try {
       const { limit = 10, offset = 0, name } = query;
-      return await this.cachedCharactersRepository.getAll(limit, offset, name);
+      return await this.charactersRepository.getAll(limit, offset, name);
     } catch (error) {
       throw ErrorFactory.createInternalError(
         'CHARACTERS',
@@ -54,7 +51,7 @@ export class CharactersService {
   }
 
   async findOne(id: string) {
-    const character = await this.cachedCharactersRepository.getById(id);
+    const character = await this.charactersRepository.getById(id);
 
     if (!character) {
       throw ErrorFactory.createNotFoundError(

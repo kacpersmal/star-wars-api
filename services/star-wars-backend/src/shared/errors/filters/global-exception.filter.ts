@@ -27,6 +27,16 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.statusCode;
       message = exception.message;
 
+      const sanitizedContext = exception.context
+        ? { ...exception.context }
+        : undefined;
+      if (sanitizedContext && 'originalError' in sanitizedContext) {
+        delete sanitizedContext.originalError;
+      }
+      if (sanitizedContext && 'error' in sanitizedContext) {
+        delete sanitizedContext.error;
+      }
+
       errorResponse = {
         statusCode: status,
         timestamp: exception.timestamp.toISOString(),
@@ -38,7 +48,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           code: exception.code,
           key: exception.key,
           message: exception.message,
-          context: exception.context,
+          context: sanitizedContext,
         },
       };
 
@@ -61,12 +71,10 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       message =
         typeof exceptionResponse === 'string'
           ? exceptionResponse
-          : // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            (exceptionResponse as any).message || 'Http Exception';
+          : (exceptionResponse as any).message || 'Http Exception';
 
       errorResponse = {
         statusCode: status,

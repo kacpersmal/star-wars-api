@@ -3,7 +3,8 @@ export type ErrorDomain =
   | 'CHARACTERS'
   | 'EPISODES'
   | 'SPECIES'
-  | 'DATABASE';
+  | 'DATABASE'
+  | 'REPOSITORY';
 
 export type ErrorCode =
   | 'NOT_FOUND'

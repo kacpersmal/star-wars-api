@@ -5,7 +5,6 @@ import {
   GetSpeciesByIdQueryDto,
 } from 'src/features/species/actions/get-species-by-id/get-species-by-id.dto';
 import { SpeciesRepository } from '../../repositories/species.repository';
-import { InjectCached } from 'src/shared/utils/inject-cached.decorator';
 import { ErrorFactory } from 'src/shared/errors/core/application-error.factory';
 
 @Injectable()
@@ -13,13 +12,10 @@ import { ErrorFactory } from 'src/shared/errors/core/application-error.factory';
 export class GetSpeciesByIdHandler
   implements IQueryHandler<GetSpeciesByIdQueryDto>
 {
-  constructor(
-    @InjectCached('SPECIES_REPOSITORY')
-    private readonly cachedSpeciesRepository: SpeciesRepository,
-  ) {}
+  constructor(private readonly speciesRepository: SpeciesRepository) {}
 
   async execute(query: GetSpeciesByIdQueryDto): Promise<GetSpeciesByIdDto> {
-    const species = await this.cachedSpeciesRepository.getById(query.id);
+    const species = await this.speciesRepository.getById(query.id);
 
     if (!species) {
       throw ErrorFactory.createNotFoundError('SPECIES', 'Species not found', {

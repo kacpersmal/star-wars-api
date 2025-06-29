@@ -4,10 +4,9 @@ import { CacheService } from '../redis/cache/cache.service';
 import { DrizzleClient } from '../database/drizzle.provider';
 import { ReadRepository } from 'src/shared/repositories/interfaces/read-repository';
 import { WriteRepository } from 'src/shared/repositories/interfaces/write-repository';
-import {
-  TypedCache,
-  InvalidateCache,
-} from '../redis/cache/typed-cache.decorator';
+import { ErrorFactory } from '../errors/core/application-error.factory';
+import { ErrorDomain } from '../errors/core/error-template';
+
 import { eq, and, ilike, sql, type SQL } from 'drizzle-orm';
 import { getErrorMessage } from '../utils/error.util';
 
@@ -21,10 +20,13 @@ export class BaseRepository<T>
     protected readonly schema?: any,
   ) {}
 
-  @TypedCache({ ttl: 300 })
   async getAll(limit?: number, offset?: number, search?: string): Promise<T[]> {
     if (!this.schema) {
-      throw new Error('Schema not provided to repository');
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        'Schema not provided to repository',
+        { method: 'getAll', repositoryName: this.constructor.name },
+      );
     }
 
     try {
@@ -54,14 +56,28 @@ export class BaseRepository<T>
 
       return await query;
     } catch (error) {
-      throw new Error(`Failed to fetch records: ${getErrorMessage(error)}`);
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        `Failed to fetch records: ${getErrorMessage(error)}`,
+        {
+          method: 'getAll',
+          repositoryName: this.constructor.name,
+          limit,
+          offset,
+          search,
+          originalError: getErrorMessage(error),
+        },
+      );
     }
   }
 
-  @TypedCache({ ttl: 300 })
   async getById(id: string): Promise<T | null> {
     if (!this.schema) {
-      throw new Error('Schema not provided to repository');
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        'Schema not provided to repository',
+        { method: 'getById', repositoryName: this.constructor.name, id },
+      );
     }
 
     try {
@@ -73,45 +89,53 @@ export class BaseRepository<T>
 
       return result[0] || null;
     } catch (error) {
-      throw new Error(
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
         `Failed to fetch record by ID: ${getErrorMessage(error)}`,
+        {
+          method: 'getById',
+          repositoryName: this.constructor.name,
+          id,
+          originalError: getErrorMessage(error),
+        },
       );
     }
   }
 
-  @InvalidateCache([
-    `cache:{{this.constructor.name}}:getAll:*`,
-    `cache:{{this.constructor.name}}:getById:*`,
-  ])
   async create(data: any): Promise<T> {
     if (!this.schema) {
-      throw new Error('Schema not provided to repository');
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        'Schema not provided to repository',
+        { method: 'create', repositoryName: this.constructor.name },
+      );
     }
 
     try {
-      console.log(
-        'BaseRepository.create - data:',
-        JSON.stringify(data, null, 2),
-      );
-      console.log('BaseRepository.create - data type:', typeof data);
-      console.log('BaseRepository.create - schema:', this.schema);
-
       const result = await this.db.insert(this.schema).values(data).returning();
 
       return result[0] as T;
     } catch (error) {
-      console.error('BaseRepository.create - error:', error);
-      throw new Error(`Failed to create record: ${getErrorMessage(error)}`);
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        `Failed to create record: ${getErrorMessage(error)}`,
+        {
+          method: 'create',
+          repositoryName: this.constructor.name,
+          data,
+          originalError: getErrorMessage(error),
+        },
+      );
     }
   }
 
-  @InvalidateCache([
-    `cache:{{this.constructor.name}}:getAll:*`,
-    `cache:{{this.constructor.name}}:getById:*`,
-  ])
   async update(id: string, data: Partial<T>): Promise<T | null> {
     if (!this.schema) {
-      throw new Error('Schema not provided to repository');
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        'Schema not provided to repository',
+        { method: 'update', repositoryName: this.constructor.name, id },
+      );
     }
 
     try {
@@ -128,23 +152,42 @@ export class BaseRepository<T>
 
       return (result[0] as T) || null;
     } catch (error) {
-      throw new Error(`Failed to update record: ${getErrorMessage(error)}`);
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        `Failed to update record: ${getErrorMessage(error)}`,
+        {
+          method: 'update',
+          repositoryName: this.constructor.name,
+          id,
+          data,
+          originalError: getErrorMessage(error),
+        },
+      );
     }
   }
 
-  @InvalidateCache([
-    `cache:{{this.constructor.name}}:getAll:*`,
-    `cache:{{this.constructor.name}}:getById:*`,
-  ])
   async delete(id: string): Promise<void> {
     if (!this.schema) {
-      throw new Error('Schema not provided to repository');
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        'Schema not provided to repository',
+        { method: 'delete', repositoryName: this.constructor.name, id },
+      );
     }
 
     try {
       await this.db.delete(this.schema).where(eq(this.schema.id, id));
     } catch (error) {
-      throw new Error(`Failed to delete record: ${getErrorMessage(error)}`);
+      throw ErrorFactory.createInternalError(
+        'REPOSITORY',
+        `Failed to delete record: ${getErrorMessage(error)}`,
+        {
+          method: 'delete',
+          repositoryName: this.constructor.name,
+          id,
+          originalError: getErrorMessage(error),
+        },
+      );
     }
   }
 
