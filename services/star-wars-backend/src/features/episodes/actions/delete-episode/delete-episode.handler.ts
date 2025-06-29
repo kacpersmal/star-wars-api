@@ -28,7 +28,7 @@ export class DeleteEpisodeHandler
     }
 
     try {
-      await this.episodeRepository.remove(id);
+      await this.episodeRepository.delete(id);
     } catch (error) {
       throw ErrorFactory.createInternalError(
         'EPISODES',

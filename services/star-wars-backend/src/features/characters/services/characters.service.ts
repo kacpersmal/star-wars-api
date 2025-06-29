@@ -42,7 +42,8 @@ export class CharactersService {
 
   async findAll(query: CharacterQueryDto) {
     try {
-      return await this.cachedCharactersRepository.findAll(query);
+      const { limit = 10, offset = 0, name } = query;
+      return await this.cachedCharactersRepository.getAll(limit, offset, name);
     } catch (error) {
       throw ErrorFactory.createInternalError(
         'CHARACTERS',
@@ -53,7 +54,7 @@ export class CharactersService {
   }
 
   async findOne(id: string) {
-    const character = await this.cachedCharactersRepository.findOne(id);
+    const character = await this.cachedCharactersRepository.getById(id);
 
     if (!character) {
       throw ErrorFactory.createNotFoundError(
@@ -82,7 +83,7 @@ export class CharactersService {
   async remove(id: string) {
     await this.findOne(id);
     try {
-      await this.charactersRepository.remove(id);
+      await this.charactersRepository.delete(id);
     } catch (error) {
       throw ErrorFactory.createInternalError(
         'CHARACTERS',
