@@ -112,6 +112,8 @@ Once running, visit:
 
 ## 🧪 Testing
 
+For the future smooth operation and maintanability it would be good to include unit tests -> integration -> e2e tests.
+
 ```bash
 # Unit tests
 npm test
