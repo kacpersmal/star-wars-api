@@ -239,7 +239,8 @@ export class CacheService {
 
     try {
       const serialized = JSON.stringify(args);
-      return Buffer.from(serialized).toString('base64').slice(0, 16);
+      //This introduced nice bug which caused some cache keys to be the same =)
+      return Buffer.from(serialized).toString('base64').slice(0, 32);
     } catch (error) {
       this.logger.warn(
         `Failed to serialize arguments for cache key: ${getErrorMessage(error)}`,

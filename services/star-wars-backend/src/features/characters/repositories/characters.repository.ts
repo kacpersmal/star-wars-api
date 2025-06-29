@@ -7,7 +7,10 @@ import {
   type Species,
   type Episode,
 } from '../../../shared/database/schema';
-import { BaseRepository } from 'src/shared/repositories/base.repository';
+import {
+  BaseRepository,
+  CacheConfig,
+} from 'src/shared/repositories/base.repository';
 
 export interface CharacterWithRelations extends Character {
   species?: Species;
@@ -17,7 +20,14 @@ export interface CharacterWithRelations extends Character {
 @Injectable()
 export class CharactersRepository extends BaseRepository<Character> {
   constructor(databaseService: DatabaseService, cacheService: CacheService) {
-    super(databaseService, cacheService, characters);
+    // Configure caching for characters with 10 minutes TTL
+    const cacheConfig: CacheConfig = {
+      enabled: true,
+      ttl: 600, // 10 minutes
+      keyPrefix: 'characters',
+    };
+
+    super(databaseService, cacheService, characters, cacheConfig);
   }
 
   protected getSearchableFields(): string[] {
